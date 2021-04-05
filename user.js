@@ -1,26 +1,26 @@
 const express = require('express')
 const UsersModel = require('../models/user.js')
 const UserAccessToken = require('../models/access_token.js')
+const UserDetail = require('../models/user_detail.js')
 const userAuthentication = require('../middleware/auth.js')
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken')
-const sgMail = require('@sendgrid/mail')
+//const sgMail = require('@sendgrid/mail')
 const secret_jwt = process.env.SECRET_TOKEN
 const saltRounds = 10;
 const router = express.Router()
 
-//const sendgridAPIKey = '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'
-const sendgridAPIKey = process.env.sendgrid_KEY
-sgMail.setApiKey(sendgridAPIKey)
-const sendGridMail = (email, name) => {
-    sgMail.send({
-        to: email,
-        from: 'prateekdagur8@gmail.com',
-        subject: 'Sending with SendGrid',
-        text: `user ${name} has been created`,
+// const sendgrid_API_Key = process.env.sendgrid_KEY
+// sgMail.setApiKey(sendgrid_API_Key)
+// const sendGridMail = (email, name) => {
+//     sgMail.send({
+//         to: email,
+//         from: 'prateekdagur8@gmail.com',
+//         subject: 'Sending with SendGrid',
+//         text: `user ${name} has been created`,
 
-    })
-}
+//     })
+// }
 router.post('/sign_up', async (req, res) => {
     try {
         const salt = bcrypt.genSaltSync(saltRounds);
@@ -29,7 +29,7 @@ router.post('/sign_up', async (req, res) => {
         req.body.salt = salt
         const user = new UsersModel(req.body);
         let data = await user.save();
-        sendGridMail(user.email, user.name)
+       // sendGridMail(user.email, user.name)
         res.send(data)
     }
     catch (err) {
@@ -37,6 +37,28 @@ router.post('/sign_up', async (req, res) => {
 
     }
 })
+router.post('/user_details', userAuthentication.auth, async (req, res) => {
+    try {
+        const user_id = req.user.user_id
+        const users = new UserDetail({
+         user_id: user_id,
+         favourite_car: req.body.favourite_car,
+         mobile_no: req.body.mobile_no
+        })
+        let data = await users.save()
+        let updateUser = await UsersModel.updateOne({ "_id": user_id },
+             {
+                $push: {
+                    user_details: data._id
+                }
+                }
+            )
+        res.send(data);
+    }
+    catch (err) {
+        res.status(500).send(err);
+    }
+});
 router.post('/login', async (req, res) => {
     try {
         const email = req.body.email;
@@ -78,9 +100,24 @@ router.put('/logout/:_id', async (req, res) => {
 router.get('/get/:_id', async (req, res) => {
     try {
         const user_id = req.params._id
-        const user = await UsersModel.findOne({ "_id": user_id })
+        const user = await UsersModel.findOne({ "_id": user_id }).populate({path: 'user_details'})
+        console.log(user)
         if (!user) {
             res.json({ message: 'invalid user' })
+        }
+        res.send(user)
+
+    } catch (e) {
+        res.status(401).send(e.message)
+    }
+});
+router.get('/get/:favourite_car', async (req, res) => {
+    try { 
+        const car = req.params.favourite_car
+        const user = await UsersModel.find({ "favourite_car": car })
+        if (!user) 
+        {           
+             res.json({ message: 'invalid user' })
         }
         res.send(user)
 
