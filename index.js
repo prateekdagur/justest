@@ -1,14 +1,6 @@
-require("dotenv").config();
-const express = require('express')
-const mongoose = require('mongoose')
-const userRouters = require('./routes/user')
-mongoose.connect(process.env.url, { useNewUrlParser: true, useUnifiedTopology: true, useFindAndModify: false })
-let app = express()
-const port = process.env.PORT || 5000
-app.use(express.json());
-app.use('/user', userRouters)
-app.use(require('body-parser').urlencoded({ extended: true }));
+import React from 'react';
+import ReactDOM from 'react-dom';
+import './index.css';
+import App from './App';
 
-
-
-app.listen(port, () => console.log(`Express server currently running on port ${port}`)) 
+ReactDOM.render(<App />,document.getElementById('root'));
